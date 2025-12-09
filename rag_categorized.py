@@ -96,6 +96,7 @@ class SimpleRAG:
                 item['rag_improved'] = False
 
             # Save to knowledge base
+            breakpoint()
             self.add_to_knowledge(text, item['category'], item_type)
 
             improved.append(item)

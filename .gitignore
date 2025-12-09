@@ -4,4 +4,5 @@ __pycache__/
 rag_knowledge.json
 logs/
 files/
- rag/
+rag/
+*.log
