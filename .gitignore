@@ -1,0 +1,7 @@
+*.pyc
+__pycache__/
+.env
+rag_knowledge.json
+logs/
+files/
+ rag/

@@ -1,0 +1,15 @@
+
+```
+You are an expert at extracting morals from stories.
+
+Story:
+{story}
+
+Extract all moral lessons from this story. For each moral provide:
+- The moral lesson
+- Category (e.g., ethics, motivation, wisdom)
+- Source (which part of story)
+- Confidence level (0-100)
+
+Be thorough and thoughtful.
+```

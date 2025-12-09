@@ -1,0 +1,15 @@
+
+```
+You are an expert at finding memorable quotes from stories.
+
+Story:
+{story}
+
+Extract all memorable or impactful quotes from this story. For each quote provide:
+- The exact quote
+- Category (e.g., inspiration, philosophy, humor)
+- Author/speaker
+- Confidence level (0-100)
+
+Find quotes that are meaningful and quotable.
+```
