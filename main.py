@@ -27,8 +27,8 @@ def write_to_file(data: list[BaseModel], output_path: str):
 def main():
 
     # Command line arguments
-    story_path = sys.argv[1] if len(sys.argv) > 1 else "files2/story2.txt"
-    output_path = sys.argv[2] if len(sys.argv) > 2 else "files2/output2.json"
+    story_path = sys.argv[1] if len(sys.argv) > 1 else "file/story.txt"
+    output_path = sys.argv[2] if len(sys.argv) > 2 else "file/output.json"
 
     logger.info(f"Reading: {story_path}")
     logger.info(f"Output: {output_path}")
@@ -45,7 +45,6 @@ def main():
     moral_dicts = [m.model_dump() for m in result['morals']]
     quote_dicts = [q.model_dump() for q in result['quotes']]
 
-    breakpoint()
 
     improved_morals = rag.improve_categories(moral_dicts, "moral")
     improved_quotes = rag.improve_categories(quote_dicts, "quote")
