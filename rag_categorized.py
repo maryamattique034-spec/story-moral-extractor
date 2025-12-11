@@ -2,9 +2,12 @@ import json
 import os
 from collections import defaultdict
 
+from openai import OpenAI
+from config import OPENAI_API_KEY
+
 
 class SimpleRAG:
-    """Simple RAG for better categorization"""
+    """Standard RAG with pre-context post-processing"""
 
     def __init__(self, db_path="rag_knowledge.json"):
         self.db_path = db_path
@@ -28,8 +31,34 @@ class SimpleRAG:
         words = text.lower().replace('.', '').replace(',', '').split()
         return [w for w in words if w not in stop_words and len(w) > 3]
 
+    # Retrieval for pre-context
+    def get_context_examples(self, item_type="moral"):
+        """
+        Retrieve past examples to provide as context to AI
+        This is the RETRIEVAL step of standard RAG
+        """
+        db_key = "morals" if item_type == "moral" else "quotes"
+        past_data = self.knowledge.get(db_key, {})
+
+        if not past_data:
+            return ""
+
+        # Build context string with examples from each category
+        context = f"\nHere are some past {item_type} categorization examples to guide you:\n\n"
+
+        for category, items in past_data.items():
+            if items:
+                # Take first 2 examples from each category
+                examples = items[:2]
+                for example in examples:
+                    context += f"Example: '{example}' → Category: {category}\n"
+
+        context += "\nUse these examples as guidance for consistent categorization.\n"
+        return context
+
+    # Existing: post-processing
     def find_best_category(self, text, original_category, item_type="moral"):
-        """Find best matching category from past data"""
+        """Find best matching category using semantic similarity"""
 
         db_key = "morals" if item_type == "moral" else "quotes"
         past_data = self.knowledge.get(db_key, {})
@@ -75,30 +104,31 @@ class SimpleRAG:
             self.knowledge[db_key][category].append(text)
             self._save_db()
 
+
     def improve_categories(self, items, item_type="moral"):
-        """Apply RAG to improve categories"""
-        improved = []
+            """Apply semantic RAG to improve categories"""
+            improved = []
 
-        for item in items:
-            text = item['moral'] if item_type == "moral" else item['quote']
-            original_cat = item['category']
+            for item in items:
+                text = item['moral'] if item_type == "moral" else item['quote']
+                original_cat = item['category']
 
-            # Find better category
-            better_cat, conf, reason = self.find_best_category(text, original_cat, item_type)
+                # Find better category
+                better_cat, conf, reason = self.find_best_category(text, original_cat, item_type)
 
-            # Update if improved
-            if better_cat != original_cat and conf > 0:
-                item['category'] = better_cat
-                item['rag_improved'] = True
-                item['rag_confidence'] = conf
-                item['original_category'] = original_cat
-            else:
-                item['rag_improved'] = False
+                # Update if improved
+                if better_cat != original_cat and conf > 0:
+                    item['category'] = better_cat
+                    item['rag_improved'] = True
+                    item['rag_confidence'] = conf
+                    item['original_category'] = original_cat
 
-            # Save to knowledge base
-            breakpoint()
-            self.add_to_knowledge(text, item['category'], item_type)
+                else:
+                    item['rag_improved'] = False
 
-            improved.append(item)
+                # Save to knowledge base
+                self.add_to_knowledge(text, item['category'], item_type)
 
-        return improved
+                improved.append(item)
+
+            return improved

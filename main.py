@@ -37,11 +37,25 @@ def main():
     rag = SimpleRAG()
     logger.info(f"RAG Knowledge Base loaded")
 
-    agent = Agent(open_api_key=OPENAI_API_KEY)
+    if rag.knowledge.get("morals"):
+        moral_count = sum(len(items) for items in rag.knowledge["morals"].values())
+        logger.info(f"Found {moral_count} past morals in knowledge base")
+
+    if rag.knowledge.get("quotes"):
+        quote_count = sum(len(items) for items in rag.knowledge["quotes"].values())
+        logger.info(f"Found {quote_count} past quotes in knowledge base")
+
+    agent = Agent(open_api_key=OPENAI_API_KEY, rag=rag)
+
     story = get_story(path = story_path)
+    logger.info(f"Story length: {len(story)} characters")
+
+    logger.info("Generating morals and quotes with RAG context...")
     result = agent.run(story)
 
-    logger.info("Applying RAG categorization...")
+    logger.info(f"Extracted {len(result['morals'])} morals and {len(result['quotes'])} quotes")
+
+    logger.info("Applying RAG post-processing for consistency...")
     moral_dicts = [m.model_dump() for m in result['morals']]
     quote_dicts = [q.model_dump() for q in result['quotes']]
 
@@ -54,10 +68,11 @@ def main():
 
     rag_improved_morals = sum(1 for m in improved_morals if m.get('rag_improved'))
     rag_improved_quotes = sum(1 for q in improved_quotes if q.get('rag_improved'))
-    logger.info(f"RAG improved {rag_improved_morals} morals and {rag_improved_quotes} quotes")
+    logger.info(f"post-processing further improved {rag_improved_morals} morals and {rag_improved_quotes} quotes")
+    logger.info(f"Total morals: {len(improved_morals)}, Total quotes: {len(improved_quotes)}")
 
     write_to_file(result, output_path)
-    logger.info(f"Output saved successfully")
+    logger.info(f"Output saved successfully to {output_path}")
     return result
 
 if __name__ == "__main__":

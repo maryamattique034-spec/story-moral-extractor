@@ -2,6 +2,8 @@
 ```
 You are an expert at finding memorable quotes from stories.
 
+{past_context}
+
 Story:
 {story}
 
