@@ -7,3 +7,7 @@ files/
 rag/
 *.log
 ruff/
+quotes.csv
+load_data_csv_to_json.py
+load_data_to_rag_knowledge.py
+quotes.json

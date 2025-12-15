@@ -2,9 +2,6 @@ import json
 import os
 from collections import defaultdict
 
-from openai import OpenAI
-from config import OPENAI_API_KEY
-
 
 class SimpleRAG:
     """Standard RAG with pre-context post-processing"""
@@ -25,18 +22,23 @@ class SimpleRAG:
         with open(self.db_path, 'w', encoding='utf-8') as f:
             json.dump(self.knowledge, f, indent=2, ensure_ascii=False)
 
-    def _get_keywords(self, text):
-        """Extract keywords from text"""
-        stop_words = {'the', 'is', 'are', 'was', 'a', 'an', 'and', 'or', 'of', 'to', 'in', 'that', 'it'}
-        words = text.lower().replace('.', '').replace(',', '').split()
-        return [w for w in words if w not in stop_words and len(w) > 3]
+    # def _get_keywords(self, text):
+    #     """Extract keywords from text"""
+    #     if not isinstance(text, str) or not text.strip():
+    #         return []
+    #     stop_words = {'the', 'is', 'are', 'was', 'a', 'an', 'and', 'or', 'of', 'to', 'in', 'that', 'it'}
+    #     words = text.lower().replace('.', '').replace(',', '').split()
+    #     return [w for w in words if w not in stop_words and len(w) > 3]
+
 
     # Retrieval for pre-context
-    def get_context_examples(self, item_type="moral"):
+    def get_context_examples(self, item_type="moral", max_per_category = 2):
         """
         Retrieve past examples to provide as context to AI
         This is the RETRIEVAL step of standard RAG
         """
+        import random
+
         db_key = "morals" if item_type == "moral" else "quotes"
         past_data = self.knowledge.get(db_key, {})
 
@@ -46,48 +48,26 @@ class SimpleRAG:
         # Build context string with examples from each category
         context = f"\nHere are some past {item_type} categorization examples to guide you:\n\n"
 
-        for category, items in past_data.items():
+        # Limit categories to prevent huge context
+        categories = list(past_data.keys())
+
+        if len(categories) > 10:
+            categories = random.sample(categories, 10)
+
+        for category in categories:
+            items = past_data[category]
             if items:
-                # Take first 2 examples from each category
-                examples = items[:2]
+                # Take random examples from each category
+                examples = random.sample(items, min(max_per_category, len(items)))   # Random 3
+
                 for example in examples:
-                    context += f"Example: '{example}' → Category: {category}\n"
+                    # TRUNCATE long quotes
+                    text = example[:60] + "..." if len(example) > 60 else example
+                    context += f"Example: '{text}' → Category: {category}\n"
 
         context += "\nUse these examples as guidance for consistent categorization.\n"
         return context
 
-    # Existing: post-processing
-    def find_best_category(self, text, original_category, item_type="moral"):
-        """Find best matching category using semantic similarity"""
-
-        db_key = "morals" if item_type == "moral" else "quotes"
-        past_data = self.knowledge.get(db_key, {})
-
-        if not past_data:
-            return original_category, 0, "No past data"
-
-        keywords = self._get_keywords(text)
-        category_scores = defaultdict(int)
-
-        # Score each category based on keyword matches
-        for category, items in past_data.items():
-            for item in items:
-                item_keywords = self._get_keywords(item)
-                matches = set(keywords) & set(item_keywords)
-                category_scores[category] += len(matches)
-
-        if not category_scores:
-            return original_category, 0, "No matches found"
-
-        # Get best category
-        best_category = max(category_scores, key=category_scores.get)
-        confidence = min(90, category_scores[best_category] * 20)
-
-        # Only use if confidence is high
-        if confidence >= 40:
-            return best_category, confidence, f"Matched with past {item_type}s"
-
-        return original_category, 0, "Low confidence"
 
     def add_to_knowledge(self, text, category, item_type="moral"):
         """Add item to knowledge base"""
@@ -96,39 +76,17 @@ class SimpleRAG:
         if db_key not in self.knowledge:
             self.knowledge[db_key] = {}
 
-        if category not in self.knowledge[db_key]:
-            self.knowledge[db_key][category] = []
+        if isinstance(category, list):
+            category_key = ",".join(category)
+
+        else:
+            category_key = category
+
+        if category_key not in self.knowledge[db_key]:
+            self.knowledge[db_key][category_key] = []
 
         # Avoid duplicates
-        if text not in self.knowledge[db_key][category]:
-            self.knowledge[db_key][category].append(text)
+        if text not in self.knowledge[db_key][category_key]:
+            self.knowledge[db_key][category_key].append(text)
             self._save_db()
 
-
-    def improve_categories(self, items, item_type="moral"):
-            """Apply semantic RAG to improve categories"""
-            improved = []
-
-            for item in items:
-                text = item['moral'] if item_type == "moral" else item['quote']
-                original_cat = item['category']
-
-                # Find better category
-                better_cat, conf, reason = self.find_best_category(text, original_cat, item_type)
-
-                # Update if improved
-                if better_cat != original_cat and conf > 0:
-                    item['category'] = better_cat
-                    item['rag_improved'] = True
-                    item['rag_confidence'] = conf
-                    item['original_category'] = original_cat
-
-                else:
-                    item['rag_improved'] = False
-
-                # Save to knowledge base
-                self.add_to_knowledge(text, item['category'], item_type)
-
-                improved.append(item)
-
-            return improved

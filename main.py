@@ -1,7 +1,5 @@
 from rag_categorized import SimpleRAG
-from openai import OpenAI
 from pydantic import BaseModel
-from schema import MoralSchema, ResponseSchema
 import json
 import os
 import sys
@@ -9,7 +7,6 @@ from config import logger
 
 from agent import Agent
 from config import OPENAI_API_KEY
-from pydantic import BaseModel
 
 # Helper Functions
 def get_story(path: str):
@@ -17,8 +14,9 @@ def get_story(path: str):
         return file.read()
 
 def write_to_file(data: list[BaseModel], output_path: str):
-    morals = data["morals"]
-    quotes = data["quotes"]
+
+    morals = [m.model_dump() if hasattr(m, 'model_dump') else m for m in data["morals"]]
+    quotes = [q.model_dump() if hasattr(q, 'model_dump') else q for q in data["quotes"]]
     
     with open(output_path, "w", encoding="utf-8") as file:
         json.dump({"morals": morals, "quotes": quotes}, file, indent=4, ensure_ascii=False)
@@ -27,8 +25,8 @@ def write_to_file(data: list[BaseModel], output_path: str):
 def main():
 
     # Command line arguments
-    story_path = sys.argv[1] if len(sys.argv) > 1 else "file/story.txt"
-    output_path = sys.argv[2] if len(sys.argv) > 2 else "file/output.json"
+    story_path = sys.argv[1] if len(sys.argv) > 1 else "file/story1.txt"
+    output_path = sys.argv[2] if len(sys.argv) > 2 else "file/output1.json"
 
     logger.info(f"Reading: {story_path}")
     logger.info(f"Output: {output_path}")
@@ -45,34 +43,35 @@ def main():
         quote_count = sum(len(items) for items in rag.knowledge["quotes"].values())
         logger.info(f"Found {quote_count} past quotes in knowledge base")
 
+
     agent = Agent(open_api_key=OPENAI_API_KEY, rag=rag)
 
     story = get_story(path = story_path)
     logger.info(f"Story length: {len(story)} characters")
 
     logger.info("Generating morals and quotes with RAG context...")
+
+
     result = agent.run(story)
 
     logger.info(f"Extracted {len(result['morals'])} morals and {len(result['quotes'])} quotes")
 
-    logger.info("Applying RAG post-processing for consistency...")
-    moral_dicts = [m.model_dump() for m in result['morals']]
-    quote_dicts = [q.model_dump() for q in result['quotes']]
+    # ======== Save to knowledge base (no post-processing!)
+    logger.info("Saving to knowledge base...")
+    for moral in result["morals"]:
+        m = moral.model_dump() if hasattr(moral, 'model_dump') else moral
+        rag.add_to_knowledge(m['moral'], m['category'], "moral")
 
+    for quote in result["quotes"]:
+        q = quote.model_dump() if hasattr(quote, 'model_dump') else quote
+        rag.add_to_knowledge(q['quote'], q['category'], "quote")
 
-    improved_morals = rag.improve_categories(moral_dicts, "moral")
-    improved_quotes = rag.improve_categories(quote_dicts, "quote")
+    logger.info(f"Total morals: {len(result['morals'])}, Total quotes: {len(result['quotes'])}")
 
-    result['morals'] = improved_morals
-    result['quotes'] = improved_quotes
-
-    rag_improved_morals = sum(1 for m in improved_morals if m.get('rag_improved'))
-    rag_improved_quotes = sum(1 for q in improved_quotes if q.get('rag_improved'))
-    logger.info(f"post-processing further improved {rag_improved_morals} morals and {rag_improved_quotes} quotes")
-    logger.info(f"Total morals: {len(improved_morals)}, Total quotes: {len(improved_quotes)}")
-
+    # ====== Write Output ======
     write_to_file(result, output_path)
     logger.info(f"Output saved successfully to {output_path}")
+
     return result
 
 if __name__ == "__main__":

@@ -1,16 +1,17 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import List
 # Schema
 
 class MoralSchema(BaseModel):
     moral: str
-    category: str
+    category: List[str]
     source: str
     confidence: int
 
 class QuoteSchema(BaseModel):
     quote: str
-    category: str
+    category: List[str]
+    source : str
     author: str
     confidence: int
 
