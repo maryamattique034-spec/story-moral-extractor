@@ -14,6 +14,7 @@ class QuoteSchema(BaseModel):
     source : str
     author: str
     confidence: int
+    is_external : bool
 
 class QuotesResponseSchema(BaseModel):
     response: list[QuoteSchema]

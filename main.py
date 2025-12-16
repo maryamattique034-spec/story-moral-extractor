@@ -13,6 +13,9 @@ def get_story(path: str):
     with open(path, "r") as file:
         return file.read()
 
+def is_valid_quote(quote: str, story: str) -> bool:
+    return isinstance(quote, str) and quote.strip() and quote in story
+
 def write_to_file(data: list[BaseModel], output_path: str):
 
     morals = [m.model_dump() if hasattr(m, 'model_dump') else m for m in data["morals"]]
@@ -64,7 +67,12 @@ def main():
 
     for quote in result["quotes"]:
         q = quote.model_dump() if hasattr(quote, 'model_dump') else quote
-        rag.add_to_knowledge(q['quote'], q['category'], "quote")
+
+        if is_valid_quote(q["quote"], story):
+            rag.add_to_knowledge(q["quote"], q.get("category", []), "quote")
+
+        else:
+            logger.warning(f"Rejected invalid quote: {q['quote']}")
 
     logger.info(f"Total morals: {len(result['morals'])}, Total quotes: {len(result['quotes'])}")
 
