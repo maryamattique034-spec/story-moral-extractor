@@ -22,21 +22,21 @@ class Agent:
         self.we_did_not_specify_stop_tokens = True
 
     def run(self, input: str):
-        """run the agent with standard rag (pre-context + post-processing)"""
+        """run the agent with embedding-based RAG"""
         try:
             # Get past examples/context from RAG (RETRIEVAL step)
             moral_context = ""
             quote_context = ""
 
             if self.rag:
-                moral_context = self.rag.get_context_examples("moral")
-                quote_context = self.rag.get_context_examples("quote")
+                moral_context = self.rag.get_context_examples(input,"moral", top_n=10)
+                quote_context = self.rag.get_context_examples(input, "quote", top_n=10)
 
             # Pass context to prompts (AUGMENTATION step)
             moral_prompt  = self.prompt("prompt_files/prompt.txt", input, moral_context)
             quote_prompt  = self.prompt("prompt_files/quote_prompt.txt", input, quote_context)
 
-            # Generation step (AI generates with context)
+            # Generation step (AI generates with relevant context)
             moral_output = self.call(moral_prompt, ResponseSchema)
             quote_output = self.call(quote_prompt, QuotesResponseSchema)
 
