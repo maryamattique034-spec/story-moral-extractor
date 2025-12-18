@@ -21,8 +21,35 @@ class Agent:
         self.rag = rag # Store rag instance
         self.we_did_not_specify_stop_tokens = True
 
+
+    def is_baby_talk(self, text:str) -> bool:
+        """
+        Detects baby-talk / nonsense quotes
+        """
+        text = text.strip()
+        words= text.split()
+
+        # Very short utterances (baby talk)
+        if len(words) <= 3:
+            return True
+
+        # Mostly short nonsense words
+        short_words = [w for w in words if len(w) <= 4]
+        if len(short_words)/ len(words) > 0.6:
+            return True
+
+        return False
+
+
     def run(self, input: str):
         """run the agent with embedding-based RAG"""
+
+        # Guard : empty or meaningless input
+        if not input or not input.strip():
+            return {
+                "morals": [],
+                "quotes": []
+            }
         try:
             # Get past examples/context from RAG (RETRIEVAL step)
             moral_context = ""
@@ -43,9 +70,14 @@ class Agent:
             sanitized_moral_output = self.sanitize_output(moral_output)
             sanitized_quote_output = self.sanitize_output(quote_output)
 
+            # Filter baby-talk quotes
+            filtered_quotes = [q for q in sanitized_quote_output.response
+                               if not self.is_baby_talk(q.quote)
+            ]
+
             sanitized_output = {
                 "morals":sanitized_moral_output.response,
-                "quotes": sanitized_quote_output.response
+                "quotes": filtered_quotes
             }
             return sanitized_output
 

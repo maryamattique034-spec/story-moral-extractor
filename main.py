@@ -1,7 +1,6 @@
 from rag_categorized import SimpleRAG
 from pydantic import BaseModel
 import json
-import os
 import sys
 from config import logger
 
@@ -14,6 +13,10 @@ def get_story(path: str):
         return file.read()
 
 def is_valid_quote(quote: str, story: str) -> bool:
+    if not quote:
+        return False
+    if not story:
+        return False
     return isinstance(quote, str) and quote.strip() and quote in story
 
 def write_to_file(data: list[BaseModel], output_path: str):
