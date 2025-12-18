@@ -26,16 +26,25 @@ class Agent:
         """
         Detects baby-talk / nonsense quotes
         """
-        text = text.strip()
+        text = text.strip('"\'')  # Remove Quotes too
         words= text.split()
 
-        # Very short utterances (baby talk)
-        if len(words) <= 3:
+        # Empty or single word
+        if len(words) <= 1:
             return True
 
-        # Mostly short nonsense words
-        short_words = [w for w in words if len(w) <= 4]
-        if len(short_words)/ len(words) > 0.6:
+        baby_patterns = [
+            "dibble", "dop", "boken", "mama", "dada",
+            "tweet", "woof", "meow", "moo"
+        ]
+
+        text_lower = text.lower()
+        if any(pattern in text_lower for pattern in baby_patterns):
+            return True
+
+        # Mostly short nonsense words (2 char or less)
+        short_words = [w for w in words if len(w) <= 2]
+        if len(short_words)/ len(words) > 0.5:      # More than 50% tiny words
             return True
 
         return False

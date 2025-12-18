@@ -13,11 +13,19 @@ def get_story(path: str):
         return file.read()
 
 def is_valid_quote(quote: str, story: str) -> bool:
-    if not quote:
+    """Validate if quote exists in story"""
+    # Check if quote is valid string and not empty
+    if not isinstance(quote, str):
         return False
-    if not story:
+
+    if not quote.strip():
         return False
-    return isinstance(quote, str) and quote.strip() and quote in story
+
+    # Check if quote exists in story
+    if quote not in story:
+        return False
+
+    return True
 
 def write_to_file(data: list[BaseModel], output_path: str):
 

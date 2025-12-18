@@ -84,6 +84,7 @@ class TestAgent:
         logger.info(f"Extracted {len(result['quotes'])} quotes")
 
 
+
     def test_moral_has_required_fields(self, agent_instance, sample_story):
         """Test: Each moral should have required fields"""
 

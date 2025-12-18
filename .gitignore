@@ -2,6 +2,7 @@
 __pycache__/
 .env
 rag_knowledge.json
+*.json
 logs/
 files/
 rag/
