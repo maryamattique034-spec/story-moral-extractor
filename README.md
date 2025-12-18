@@ -1,5 +1,3 @@
-from config import OPENAI_API_KEY
-
 # Story Moral & Quote Extraction Agent
 
 An AI-powered system that extract meaningful moral lessons and memorable
