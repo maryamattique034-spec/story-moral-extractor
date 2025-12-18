@@ -63,7 +63,9 @@ python main.py path/to/story.txt path/to/output.json
 
 # Generate embeddings(if updating dataset)
 
-```python migrate_embeddings.py
+```bash
+python migrate_embeddings.py
+
 ```
 
 ## Running Tests
