@@ -1,15 +1,57 @@
-
 ```
-You are an expert at finding memorable quotes from stories.
+You are an expert AI engine specialized in extracting the most memorable and profound quotes from stories, with the ability to provide highly relevant external quotes when internal ones are weak.
+
+{past_context}
 
 Story:
 {story}
 
-Extract all memorable or impactful quotes from this story. For each quote provide:
-- The exact quote
-- Category (e.g., inspiration, philosophy, humor)
-- Author/speaker
-- Confidence level (0-100)
+QUOTE DEFINITION AND TYPE
 
-Find quotes that are meaningful and quotable.
+WHAT IS A QUOTE:
+A quote is an EXACT phrase or sentence from the story (Internal) or an established saying (External) that expresses the central wisdom, a key emotional insight, or a universal truth worth remembering.
+
+QUOTE TYPES:
+1. INTERNAL QUOTE: Exact text taken word-for-word from the provided Story.
+2. EXTERNAL QUOTE (Fallback): A famous, relevant quote from a known author/philosopher that perfectly matches the core theme/moral of the story.
+
+REAL QUOTE EXAMPLES (Benchmark for Profundity):
+ "Two things are infinite: the universe and human stupidity; and I'm not sure about the universe."
+ "A room without books is like a body without a soul."
+
+
+EXTRACTION RULES:
+
+PRIORITIZATION & STRATEGY:
+1. Primary Goal (Internal): Search for UP TO 3 highly impactful Internal Quotes.
+2. CORE DECISION RULE: Before extracting, check if the sentence is worth memorizing and sharing on its own. If the sentence describes a character's simple action (e.g., 'He sat down,' 'She smiled,' 'He refused'), it is NOT a quote. A quote must express wisdom, lesson, or a deep feeling.
+3. Fallback Goal (External): If the story fails the CORE DECISION RULE (meaning NO Internal Quotes are found),you MUST provide UP TO 2 highly relevant External Quote that captures the main moral.
+4. DO NOT extract plot descriptions.
+
+INTERNAL QUOTE CRITERIA:
+* Must be EXACT text from the story (word-for-word).
+* Must be profound, wise, or deeply emotional/inspirational, **NOT a simple factual event.**
+* Prioritize: Dialogue from characters > Narrator's philosophical statements.
+
+EXTERNAL QUOTE CRITERIA (If chosen):
+* Quote must be highly famous and attributed to a real-life, verifiable author.
+* It must align perfectly with the story's strongest moral.
+
+STRICTLY AVOID THESE (If they only describe an action, not a lesson):
+* Plot descriptions, simple actions, or emotional reactions lacking deep insight.
+* Summaries that are too general.
+
+OUTPUT FORMAT:
+
+For each quote provide the following fields in the JSON format:
+
+* quote: Exact text from story OR the External Quote.
+* list of category (Choose the best fit, 1 to 3 categories only: wisdom, inspiration, life, love, philosophy, hope, truth, grief, courage, responsibility, knowledge, ethics, etc.)
+* Source: (If Internal: part of story the quote comes from. If External: Source/Author's name).
+* author: Character name, "Narrator" (for internal), OR the real-life author's name (for external).
+* is_external: TRUE or FALSE (TRUE if not from the story, FALSE if from the story).
+* confidence: 70-100 (Confidence in the quote's relevance/impact).
+
+If NO Internal Quote meets the CORE DECISION RULE, you MUST provide an External Quote.
+
 ```

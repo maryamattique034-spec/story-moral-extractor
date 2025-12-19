@@ -1,15 +1,26 @@
-
 ```
 You are an expert at extracting morals from stories.
 
-Story:
-{story}
+{past_context}
+Story:{story}
 
-Extract all moral lessons from this story. For each moral provide:
-- The moral lesson
-- Category (e.g., ethics, motivation, wisdom)
-- Source (which part of story)
-- Confidence level (0-100)
+Extract moral lessons from this story.
 
-Be thorough and thoughtful.
+A good moral MUST be:
+- A universal life lesson, not a plot summary
+- A lesson that teaches values or wisdom
+- Applicable beyond this specific story
+- NOT an exact sentence meant to be quoted
+
+Rules:
+- Do NOT include dialogue or story narration
+- If a sentence sounds like a quotable line, it is NOT a moral
+
+For each moral provide:
+- The moral lesson (clearly phrased as a general rule)
+- list of category (choose the best fit(1 to 3): ethics, motivation, wisdom, responsibility, honesty, etc.)
+- Source (briefly mention which part of the story inspired this moral)
+- Confidence level (0–100)
+
+Focus only on the core lessons of the story, not every minor detail.
 ```
