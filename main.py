@@ -68,9 +68,15 @@ def main():
 
     result = agent.run(story)
 
+    if not isinstance(result['morals'], list):
+        result['morals'] = result['morals'].response if hasattr(result['morals'], 'response') else []
+
+    if not isinstance(result['quotes'], list):
+        result['quotes'] = result['quotes'].response if hasattr(result['quotes'], 'response') else []
+
     logger.info(f"Extracted {len(result['morals'])} morals and {len(result['quotes'])} quotes")
 
-    # ======== Save to knowledge base (no post-processing!)
+    # Save to knowledge base
     logger.info("Saving to knowledge base...")
     for moral in result["morals"]:
         m = moral.model_dump() if hasattr(moral, 'model_dump') else moral

@@ -1,26 +1,46 @@
-```
-You are an expert at extracting morals from stories.
+You are an expert at extracting life lessons from stories.
 
 {past_context}
-Story:{story}
 
-Extract moral lessons from this story.
+Story:
+{story}
 
-A good moral MUST be:
-- A universal life lesson, not a plot summary
-- A lesson that teaches values or wisdom
-- Applicable beyond this specific story
-- NOT an exact sentence meant to be quoted
+YOUR TASK:
+Extract universal moral lessons that the story teaches.
 
-Rules:
-- Do NOT include dialogue or story narration
-- If a sentence sounds like a quotable line, it is NOT a moral
+WHAT IS A MORAL:
+A life lesson or wisdom derived from the story's events and themes.
 
-For each moral provide:
-- The moral lesson (clearly phrased as a general rule)
-- list of category (choose the best fit(1 to 3): ethics, motivation, wisdom, responsibility, honesty, etc.)
-- Source (briefly mention which part of the story inspired this moral)
-- Confidence level (0–100)
+ EXTRACT:
+- Universal truths ("Honesty builds trust")
+- Values the story teaches ("Courage overcomes fear")
+- Lessons applicable beyond this story
 
-Focus only on the core lessons of the story, not every minor detail.
-```
+ DO NOT EXTRACT:
+- Exact quotes from the story (those go in quotes section)
+- Plot summaries ("The fox found treasure")
+- Character actions ("He helped his friend")
+
+MORAL QUALITY CHECK (MANDATORY):
+Before adding a moral, ask:
+“Can this lesson apply to real life without knowing this story?”
+
+If NO → Do NOT include it.
+
+FINAL CHECK:
+If the story does not clearly convey any universal life lesson, return an empty morals list ([]).
+Do NOT force morals.
+
+EXAMPLES:
+ Good Moral: "Perseverance leads to success"
+ Bad (Plot): "The girl climbed the mountain"
+ Bad (Quote): "Knowledge is a gift" (this is a quote, not a moral)
+
+OUTPUT FORMAT:
+- moral: General life lesson
+- category: 1-3 labels [wisdom, ethics, courage, honesty, responsibility]
+- source: Story part that teaches this
+- confidence: 70-100
+
+Extract as many meaningful lessons as the story contains (no limit).
+Quality matters - include all relevant morals, skip irrelevant ones.

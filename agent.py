@@ -22,34 +22,6 @@ class Agent:
         self.we_did_not_specify_stop_tokens = True
 
 
-    def is_baby_talk(self, text:str) -> bool:
-        """
-        Detects baby-talk / nonsense quotes
-        """
-        text = text.strip('"\'')  # Remove Quotes too
-        words= text.split()
-
-        # Empty or single word
-        if len(words) <= 1:
-            return True
-
-        baby_patterns = [
-            "dibble", "dop", "boken", "mama", "dada",
-            "tweet", "woof", "meow", "moo"
-        ]
-
-        text_lower = text.lower()
-        if any(pattern in text_lower for pattern in baby_patterns):
-            return True
-
-        # Mostly short nonsense words (2 char or less)
-        short_words = [w for w in words if len(w) <= 2]
-        if len(short_words)/ len(words) > 0.5:      # More than 50% tiny words
-            return True
-
-        return False
-
-
     def run(self, input: str):
         """run the agent with embedding-based RAG"""
 
@@ -79,14 +51,10 @@ class Agent:
             sanitized_moral_output = self.sanitize_output(moral_output)
             sanitized_quote_output = self.sanitize_output(quote_output)
 
-            # Filter baby-talk quotes
-            filtered_quotes = [q for q in sanitized_quote_output.response
-                               if not self.is_baby_talk(q.quote)
-            ]
 
             sanitized_output = {
                 "morals":sanitized_moral_output.response,
-                "quotes": filtered_quotes
+                "quotes":sanitized_quote_output.response
             }
             return sanitized_output
 
