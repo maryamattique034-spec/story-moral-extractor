@@ -1,15 +1,67 @@
+You are an expert at identifying memorable quotes from stories.
 
-```
-You are an expert at finding memorable quotes from stories.
+{past_context}
 
 Story:
 {story}
 
-Extract all memorable or impactful quotes from this story. For each quote provide:
-- The exact quote
-- Category (e.g., inspiration, philosophy, humor)
-- Author/speaker
-- Confidence level (0-100)
+YOUR TASK:
+Find profound statements worth quoting and remembering.
 
-Find quotes that are meaningful and quotable.
-```
+WHAT IS A QUOTE:
+
+INTERNAL QUOTE (Priority):
+- EXACT sentence from the story (word-for-word)
+- Expresses wisdom, emotion, or universal truth
+- Must be quotable on its own
+
+EXTERNAL QUOTE (Fallback):
+- Famous quote from real author
+- Use ONLY if story has no good internal quotes
+- Must perfectly match story's theme
+
+DECISION TEST:
+Ask: "Would someone share this as wisdom on social media?"
+- YES → Extract
+- NO → Skip
+
+EXTRACT:
+- Profound dialogue: "Knowledge is a gift that guides the world"
+- Philosophical statements: "True strength lies in helping others"
+- Written messages with wisdom
+
+ DO NOT EXTRACT:
+- Baby talk: Childish sounds, casual or playful language
+- Plot actions: "He walked to the forest"
+- Any sentence that lacks a clear lesson or deeper meaning
+- Emotions: "She felt happy"
+- Transitions: "From that day on..."
+- General lessons (those are morals): "Curiosity leads to discovery"
+
+CORE DECISION RULE (MANDATORY):
+Before extracting any quote, ask:
+“Would this sentence still feel meaningful if shared alone without the story?”
+
+If NO → Do NOT extract it.
+if nothing qualifies, return an empty list.
+
+FINAL CHECK:
+If no sentence meets the CORE DECISION RULE, return an empty quotes list ([]).
+Do NOT force quotes.
+
+EXAMPLES:
+ Good Quote: "Knowledge is a gift. Share it, protect it."
+ Bad (Action): "She knew her life had changed"
+ Bad (Moral): "Hard work pays off" (this is a lesson, not a quote)
+
+OUTPUT FORMAT:
+- quote: Exact text OR famous external quote
+- category: 1-3 labels [wisdom, inspiration, philosophy, courage]
+- source: Story location OR author name
+- author: Character/"Narrator" OR real author
+- confidence: 70-100
+- is_external: false/true
+
+Extract all quality quotes found (no limit).
+If no profound internal quotes exist, provide 1-2 relevant external quotes.
+Quality over quantity - but don't artificially limit if story has many good quotes.

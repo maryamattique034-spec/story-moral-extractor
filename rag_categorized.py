@@ -1,14 +1,19 @@
 import json
 import os
-from collections import defaultdict
+
+from openai import OpenAI
+
+from config import OPENAI_API_KEY
 
 
 class SimpleRAG:
-    """Simple RAG for better categorization"""
+    """Embedding-based RAG with semantic similarity"""
 
     def __init__(self, db_path="rag_knowledge.json"):
         self.db_path = db_path
         self.knowledge = self._load_db()
+        self.client = OpenAI(api_key = OPENAI_API_KEY)
+        self.embedding_model = "text-embedding-3-small"
 
     def _load_db(self):
         """Load knowledge base"""
@@ -22,83 +27,129 @@ class SimpleRAG:
         with open(self.db_path, 'w', encoding='utf-8') as f:
             json.dump(self.knowledge, f, indent=2, ensure_ascii=False)
 
-    def _get_keywords(self, text):
-        """Extract keywords from text"""
-        stop_words = {'the', 'is', 'are', 'was', 'a', 'an', 'and', 'or', 'of', 'to', 'in', 'that', 'it'}
-        words = text.lower().replace('.', '').replace(',', '').split()
-        return [w for w in words if w not in stop_words and len(w) > 3]
+    def _get_embedding(self, text):
+        """Get embedding vector for text"""
+        try:
+            response = self.client.embeddings.create(
+                model = self.embedding_model,
+                input = text[:8000]    # truncate if too long
+            )
+            return response.data[0].embedding
+        except Exception as e:
+            print(f"Embedding error: {e}")
+            return None
 
-    def find_best_category(self, text, original_category, item_type="moral"):
-        """Find best matching category from past data"""
+    def _cosine_similarity(self, vec1, vec2):
+        """Calculate cosine similarity between two vectors"""
+        if not vec1 or not vec2:
+            return 0
+
+        dot_product = sum(a * b for a,b in zip(vec1, vec2))
+        magnitude1 = sum(a * a for a in vec1) ** 0.5
+        magnitude2 = sum(b * b for b in vec2) ** 0.5
+
+        if magnitude1 == 0 or magnitude2 == 0:
+            return 0
+
+        return dot_product / (magnitude1 * magnitude2)
+
+    # Retrieval for pre-context
+    def get_context_examples(self, story_text, item_type="moral", top_n = 10):
+        """
+        Retrieve semantically similar examples based on story
+
+        Args:
+            story_text: The input story text
+            item_type: "moral" or "quote"
+            top_n: Number of most relevant examples to retrieve
+        """
 
         db_key = "morals" if item_type == "moral" else "quotes"
         past_data = self.knowledge.get(db_key, {})
 
         if not past_data:
-            return original_category, 0, "No past data"
+            return ""
 
-        keywords = self._get_keywords(text)
-        category_scores = defaultdict(int)
+        # Get story embedding
+        story_embedding = self._get_embedding(story_text)
+        if not story_embedding:
+            return ""
 
-        # Score each category based on keyword matches
+        # Calculate similarity for all items
+        similarities = []
+
         for category, items in past_data.items():
             for item in items:
-                item_keywords = self._get_keywords(item)
-                matches = set(keywords) & set(item_keywords)
-                category_scores[category] += len(matches)
+                # Check if item has embedding
+                if isinstance(item, dict) and 'embedding' in item:
+                    text = item['text']
+                    item_embedding = item['embedding']
+                else:
+                    # Old format - just text , skip for now
+                    continue
 
-        if not category_scores:
-            return original_category, 0, "No matches found"
+                # Calculate similarity
+                sim = self._cosine_similarity(story_embedding, item_embedding)
+                similarities.append({
+                    'text': text,
+                    'category': category,
+                    'similarity': sim
+                })
 
-        # Get best category
-        best_category = max(category_scores, key=category_scores.get)
-        confidence = min(90, category_scores[best_category] * 20)
+        # sort by similarity (highest first)
+        similarities.sort(key=lambda x: x['similarity'], reverse=True)
 
-        # Only use if confidence is high
-        if confidence >= 40:
-            return best_category, confidence, f"Matched with past {item_type}s"
+        # Take top N
+        top_examples = similarities[:top_n]
 
-        return original_category, 0, "Low confidence"
+        if not top_examples:
+            return ""
+
+        # Build context
+        context = f"\nMost relevant {item_type} examples from similar stories:\n\n"
+
+        for ex in top_examples:
+            text = ex['text'][:60] + "..." if len(ex['text']) > 60 else ex['text']
+            context += f"Example: '{text}' -> category {ex['category']}\n"
+
+        context += "\nUse these relevant examples as guidance.\n"
+        return context
+
 
     def add_to_knowledge(self, text, category, item_type="moral"):
-        """Add item to knowledge base"""
+        """Add item to knowledge base with embedding"""
         db_key = "morals" if item_type == "moral" else "quotes"
 
         if db_key not in self.knowledge:
             self.knowledge[db_key] = {}
 
-        if category not in self.knowledge[db_key]:
-            self.knowledge[db_key][category] = []
+        # Handle list categories
+        if isinstance(category, list):
+            category_key = ",".join(category)
 
-        # Avoid duplicates
-        if text not in self.knowledge[db_key][category]:
-            self.knowledge[db_key][category].append(text)
+        else:
+            category_key = category
+
+        if category_key not in self.knowledge[db_key]:
+            self.knowledge[db_key][category_key] = []
+
+        # Check if already exists
+        existing_texts = [
+            item['text'] if isinstance(item, dict) else item
+            for item in self.knowledge[db_key][category_key]
+        ]
+
+        if text in existing_texts:
+            return    # Already exists
+
+        # Get embedding
+        embedding = self._get_embedding(text)
+
+        if embedding:
+            # Save as dict with embedding
+            self.knowledge[db_key][category_key].append({
+                'text' : text,
+                'embedding' : embedding
+            })
             self._save_db()
 
-    def improve_categories(self, items, item_type="moral"):
-        """Apply RAG to improve categories"""
-        improved = []
-
-        for item in items:
-            text = item['moral'] if item_type == "moral" else item['quote']
-            original_cat = item['category']
-
-            # Find better category
-            better_cat, conf, reason = self.find_best_category(text, original_cat, item_type)
-
-            # Update if improved
-            if better_cat != original_cat and conf > 0:
-                item['category'] = better_cat
-                item['rag_improved'] = True
-                item['rag_confidence'] = conf
-                item['original_category'] = original_cat
-            else:
-                item['rag_improved'] = False
-
-            # Save to knowledge base
-            breakpoint()
-            self.add_to_knowledge(text, item['category'], item_type)
-
-            improved.append(item)
-
-        return improved

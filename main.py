@@ -1,24 +1,36 @@
 from rag_categorized import SimpleRAG
-from openai import OpenAI
 from pydantic import BaseModel
-from schema import MoralSchema, ResponseSchema
 import json
-import os
 import sys
 from config import logger
 
 from agent import Agent
 from config import OPENAI_API_KEY
-from pydantic import BaseModel
 
 # Helper Functions
 def get_story(path: str):
     with open(path, "r") as file:
         return file.read()
 
+def is_valid_quote(quote: str, story: str) -> bool:
+    """Validate if quote exists in story"""
+    # Check if quote is valid string and not empty
+    if not isinstance(quote, str):
+        return False
+
+    if not quote.strip():
+        return False
+
+    # Check if quote exists in story
+    if quote not in story:
+        return False
+
+    return True
+
 def write_to_file(data: list[BaseModel], output_path: str):
-    morals = data["morals"]
-    quotes = data["quotes"]
+
+    morals = [m.model_dump() if hasattr(m, 'model_dump') else m for m in data["morals"]]
+    quotes = [q.model_dump() if hasattr(q, 'model_dump') else q for q in data["quotes"]]
     
     with open(output_path, "w", encoding="utf-8") as file:
         json.dump({"morals": morals, "quotes": quotes}, file, indent=4, ensure_ascii=False)
@@ -27,8 +39,8 @@ def write_to_file(data: list[BaseModel], output_path: str):
 def main():
 
     # Command line arguments
-    story_path = sys.argv[1] if len(sys.argv) > 1 else "file/story.txt"
-    output_path = sys.argv[2] if len(sys.argv) > 2 else "file/output.json"
+    story_path = sys.argv[1] if len(sys.argv) > 1 else "file/story1.txt"
+    output_path = sys.argv[2] if len(sys.argv) > 2 else "file/output1.json"
 
     logger.info(f"Reading: {story_path}")
     logger.info(f"Output: {output_path}")
@@ -37,27 +49,54 @@ def main():
     rag = SimpleRAG()
     logger.info(f"RAG Knowledge Base loaded")
 
-    agent = Agent(open_api_key=OPENAI_API_KEY)
+    if rag.knowledge.get("morals"):
+        moral_count = sum(len(items) for items in rag.knowledge["morals"].values())
+        logger.info(f"Found {moral_count} past morals in knowledge base")
+
+    if rag.knowledge.get("quotes"):
+        quote_count = sum(len(items) for items in rag.knowledge["quotes"].values())
+        logger.info(f"Found {quote_count} past quotes in knowledge base")
+
+
+    agent = Agent(open_api_key=OPENAI_API_KEY, rag=rag)
+
     story = get_story(path = story_path)
+    logger.info(f"Story length: {len(story)} characters")
+
+    logger.info("Generating morals and quotes with RAG context...")
+
+
     result = agent.run(story)
 
-    logger.info("Applying RAG categorization...")
-    moral_dicts = [m.model_dump() for m in result['morals']]
-    quote_dicts = [q.model_dump() for q in result['quotes']]
+    if not isinstance(result['morals'], list):
+        result['morals'] = result['morals'].response if hasattr(result['morals'], 'response') else []
 
+    if not isinstance(result['quotes'], list):
+        result['quotes'] = result['quotes'].response if hasattr(result['quotes'], 'response') else []
 
-    improved_morals = rag.improve_categories(moral_dicts, "moral")
-    improved_quotes = rag.improve_categories(quote_dicts, "quote")
+    logger.info(f"Extracted {len(result['morals'])} morals and {len(result['quotes'])} quotes")
 
-    result['morals'] = improved_morals
-    result['quotes'] = improved_quotes
+    # Save to knowledge base
+    logger.info("Saving to knowledge base...")
+    for moral in result["morals"]:
+        m = moral.model_dump() if hasattr(moral, 'model_dump') else moral
+        rag.add_to_knowledge(m['moral'], m['category'], "moral")
 
-    rag_improved_morals = sum(1 for m in improved_morals if m.get('rag_improved'))
-    rag_improved_quotes = sum(1 for q in improved_quotes if q.get('rag_improved'))
-    logger.info(f"RAG improved {rag_improved_morals} morals and {rag_improved_quotes} quotes")
+    for quote in result["quotes"]:
+        q = quote.model_dump() if hasattr(quote, 'model_dump') else quote
 
+        if is_valid_quote(q["quote"], story):
+            rag.add_to_knowledge(q["quote"], q.get("category", []), "quote")
+
+        else:
+            logger.warning(f"Rejected invalid quote: {q['quote']}")
+
+    logger.info(f"Total morals: {len(result['morals'])}, Total quotes: {len(result['quotes'])}")
+
+    # ====== Write Output ======
     write_to_file(result, output_path)
-    logger.info(f"Output saved successfully")
+    logger.info(f"Output saved successfully to {output_path}")
+
     return result
 
 if __name__ == "__main__":

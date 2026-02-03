@@ -1,15 +1,46 @@
+You are an expert at extracting life lessons from stories.
 
-```
-You are an expert at extracting morals from stories.
+{past_context}
 
 Story:
 {story}
 
-Extract all moral lessons from this story. For each moral provide:
-- The moral lesson
-- Category (e.g., ethics, motivation, wisdom)
-- Source (which part of story)
-- Confidence level (0-100)
+YOUR TASK:
+Extract universal moral lessons that the story teaches.
 
-Be thorough and thoughtful.
-```
+WHAT IS A MORAL:
+A life lesson or wisdom derived from the story's events and themes.
+
+ EXTRACT:
+- Universal truths ("Honesty builds trust")
+- Values the story teaches ("Courage overcomes fear")
+- Lessons applicable beyond this story
+
+ DO NOT EXTRACT:
+- Exact quotes from the story (those go in quotes section)
+- Plot summaries ("The fox found treasure")
+- Character actions ("He helped his friend")
+
+MORAL QUALITY CHECK (MANDATORY):
+Before adding a moral, ask:
+“Can this lesson apply to real life without knowing this story?”
+
+If NO → Do NOT include it.
+
+FINAL CHECK:
+If the story does not clearly convey any universal life lesson, return an empty morals list ([]).
+Do NOT force morals.
+
+EXAMPLES:
+ Good Moral: "Perseverance leads to success"
+ Bad (Plot): "The girl climbed the mountain"
+ Bad (Quote): "Knowledge is a gift" (this is a quote, not a moral)
+
+OUTPUT FORMAT:
+- moral: General life lesson
+- category: 1-3 labels [wisdom, ethics, courage, honesty, responsibility]
+- source: Story part that teaches this
+- confidence: 70-100
+
+Extract as many meaningful lessons as the story contains (no limit).
+Quality matters - include all relevant morals, skip irrelevant ones.
